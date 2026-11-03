@@ -1,0 +1,43 @@
+name: React Admin CI
+
+on:
+  push:
+    branches: [admin-app]
+  pull_request:
+    branches: [admin-app]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: react-admin-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run deployment configuration tests
+        run: npm test
+
+      - name: Build and validate with synthetic origins
+        run: npm run build
+        env:
+          YOMART_BUILD_ENV: staging
+          VITE_API_BASE_URL: https://api.staging.test
+          VITE_EXPECTED_SITE_ORIGIN: https://admin.staging.test
+          YOMART_EXPECTED_API_ORIGIN: https://api.staging.test
+          YOMART_PRODUCTION_API_ORIGINS: https://api.production.test
+          YOMART_PRODUCTION_SITE_ORIGINS: https://admin.production.test,https://shop.production.test
