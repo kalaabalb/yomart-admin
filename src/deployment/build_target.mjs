@@ -88,7 +88,9 @@ export function resolveAdminBuildTarget(env) {
     if (stagingOrigins.has(api.origin)) throw new Error('A staging API origin cannot be used for a production admin build.');
   }
   if (buildEnv === 'staging') {
-    const deniedSites = parseOrigins(env.YOMART_PRODUCTION_SITE_ORIGINS, 'YOMART_PRODUCTION_SITE_ORIGINS');
+    // Production site origins may not exist yet. Empty or unset is allowed
+    // only for staging; every supplied entry still uses strict origin parsing.
+    const deniedSites = parseOrigins(env.YOMART_PRODUCTION_SITE_ORIGINS, 'YOMART_PRODUCTION_SITE_ORIGINS', { allowExplicitEmpty: true });
     if (deniedSites.has(site.origin)) throw new Error('A production site origin cannot be used for a staging admin build.');
   }
   if (buildEnv === 'production') {

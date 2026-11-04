@@ -54,6 +54,39 @@ test('staging accepts valid non-empty production API origins but rejects overlap
   }), /production API origin cannot be used/);
 });
 
+test('staging allows an empty or unset production-site denylist and validates supplied origins', () => {
+  const currentStaging = {
+    ...staging,
+    VITE_API_BASE_URL: 'https://yomart-api.onrender.com',
+    YOMART_EXPECTED_API_ORIGIN: 'https://yomart-api.onrender.com',
+    VITE_EXPECTED_SITE_ORIGIN: 'https://yomart-admin.onrender.com',
+    YOMART_PRODUCTION_API_ORIGINS: '',
+    YOMART_NO_PRODUCTION_API: 'true',
+    YOMART_PRODUCTION_SITE_ORIGINS: '',
+  };
+  assert.equal(resolveAdminBuildTarget(currentStaging).siteOrigin, 'https://yomart-admin.onrender.com');
+  assert.equal(resolveAdminBuildTarget({ ...currentStaging, YOMART_PRODUCTION_SITE_ORIGINS: undefined }).siteOrigin, 'https://yomart-admin.onrender.com');
+  assert.equal(resolveAdminBuildTarget({
+    ...currentStaging,
+    YOMART_PRODUCTION_SITE_ORIGINS: 'https://admin.prod.yomart.test,https://shop.prod.yomart.test',
+  }).siteOrigin, 'https://yomart-admin.onrender.com');
+  assert.throws(() => resolveAdminBuildTarget({
+    ...currentStaging,
+    YOMART_PRODUCTION_SITE_ORIGINS: 'https://yomart-admin.onrender.com',
+  }), /production site origin cannot be used/);
+  for (const malformed of [
+    'http://admin.prod.test',
+    'https://user:pass@admin.prod.test',
+    'https://admin.prod.test/path',
+    'https://admin.prod.test?preview=1',
+    'https://admin.prod.test#fragment',
+    'https://*.prod.test',
+    'https://admin.prod.test,,https://shop.prod.test',
+  ]) {
+    assert.throws(() => resolveAdminBuildTarget({ ...currentStaging, YOMART_PRODUCTION_SITE_ORIGINS: malformed }));
+  }
+});
+
 test('admin release build requires explicit target and matching expected origin', () => {
   assert.throws(() => resolveAdminBuildTarget({}), /YOMART_BUILD_ENV must be/);
   assert.throws(() => resolveAdminBuildTarget({ ...staging, VITE_API_BASE_URL: '' }), /VITE_API_BASE_URL is required/);
@@ -99,7 +132,6 @@ test('environment origin denylists are mandatory and reject malformed entries', 
     YOMART_EXPECTED_API_ORIGIN: 'https://api.prod.test',
     YOMART_STAGING_API_ORIGINS: '',
   }), /YOMART_STAGING_API_ORIGINS is required/);
-  assert.throws(() => resolveAdminBuildTarget({ ...staging, YOMART_PRODUCTION_SITE_ORIGINS: '' }), /YOMART_PRODUCTION_SITE_ORIGINS is required/);
   assert.throws(() => resolveAdminBuildTarget({ ...staging, VITE_EXPECTED_SITE_ORIGIN: 'https://admin.prod.yomart.test' }), /production site origin cannot be used/);
   assert.throws(() => resolveAdminBuildTarget({
     YOMART_BUILD_ENV: 'production',
@@ -126,6 +158,7 @@ test('production build keeps strict non-empty staging denylist and overlap prote
     siteOrigin: 'https://admin.prod.yomart.test',
   });
   assert.throws(() => resolveAdminBuildTarget({ ...production, YOMART_STAGING_API_ORIGINS: '' }), /YOMART_STAGING_API_ORIGINS is required/);
+  assert.throws(() => resolveAdminBuildTarget({ ...production, YOMART_STAGING_SITE_ORIGINS: '' }), /YOMART_STAGING_SITE_ORIGINS is required/);
   assert.throws(() => resolveAdminBuildTarget({ ...production, VITE_API_BASE_URL: 'https://api.stage.yomart.test', YOMART_EXPECTED_API_ORIGIN: 'https://api.stage.yomart.test' }), /staging API origin cannot be used/);
 });
 
