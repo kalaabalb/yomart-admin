@@ -30,15 +30,30 @@ The interface has responsive desktop, tablet, and mobile layouts, plus persisted
 
 ```bash
 YOMART_BUILD_ENV=staging \
-VITE_API_BASE_URL=https://<staging-api-origin> \
-VITE_EXPECTED_SITE_ORIGIN=https://<staging-admin-origin> \
-YOMART_EXPECTED_API_ORIGIN=https://<staging-api-origin> \
-YOMART_PRODUCTION_API_ORIGINS=https://<production-api-origin> \
+VITE_API_BASE_URL=https://<confirmed-staging-api-origin> \
+VITE_EXPECTED_SITE_ORIGIN=https://<confirmed-staging-admin-origin> \
+YOMART_EXPECTED_API_ORIGIN=https://<same-confirmed-staging-api-origin> \
+YOMART_PRODUCTION_API_ORIGINS= \
+YOMART_NO_PRODUCTION_API=true \
 YOMART_PRODUCTION_SITE_ORIGINS=https://<production-admin-origin>,https://<production-storefront-origin> \
 npm run build
 ```
 
-The `npm run build` wrapper validates configuration, removes any previous `dist/` before preflight, and removes partial output on failure. It validates the built text artifacts contain the selected API and admin-site origins and no localhost/placeholder endpoints. The production bundle refuses to run when opened at an origin other than `VITE_EXPECTED_SITE_ORIGIN`. Build with `YOMART_BUILD_ENV=staging` or `production`, `VITE_API_BASE_URL`, `VITE_EXPECTED_SITE_ORIGIN`, and a matching `YOMART_EXPECTED_API_ORIGIN`. Staging builds require `YOMART_PRODUCTION_API_ORIGINS` and `YOMART_PRODUCTION_SITE_ORIGINS`; production builds require `YOMART_STAGING_API_ORIGINS` and `YOMART_STAGING_SITE_ORIGINS`. The build rejects mismatches, loopback API/site hosts outside local mode, placeholder hosts, and origins listed for the opposite environment. These values are public, not secrets. Configure the Express CORS allowlist to include the deployed admin site origin.
+The `npm run build` wrapper validates configuration, removes any previous `dist/` before preflight, and removes partial output on failure. It validates the built text artifacts contain the selected API and admin-site origins and no localhost/placeholder endpoints. The production bundle refuses to run when opened at an origin other than `VITE_EXPECTED_SITE_ORIGIN`. Build with `YOMART_BUILD_ENV=staging` or `production`, `VITE_API_BASE_URL`, `VITE_EXPECTED_SITE_ORIGIN`, and a matching `YOMART_EXPECTED_API_ORIGIN`. For the current Render staging setup, set `VITE_API_BASE_URL` and `YOMART_EXPECTED_API_ORIGIN` to the same confirmed staging API origin, and set `VITE_EXPECTED_SITE_ORIGIN` to the confirmed admin Static Site origin. If no production API exists, leave `YOMART_PRODUCTION_API_ORIGINS` empty and set `YOMART_NO_PRODUCTION_API=true`; the latter is an explicit owner assertion used if the hosting dashboard omits blank variables. A non-empty production API list and `YOMART_NO_PRODUCTION_API=true` are rejected together. If production APIs exist, omit/set the flag to `false` and supply only confirmed production API origins, comma-separated. Every non-empty list entry must be a bare HTTPS origin; paths, wildcards, credentials, query strings, and fragments are rejected. Staging builds still require a non-empty `YOMART_PRODUCTION_SITE_ORIGINS` list of confirmed production site origins. Production builds remain strict and require non-empty `YOMART_STAGING_API_ORIGINS` and `YOMART_STAGING_SITE_ORIGINS`. The build rejects mismatches, loopback API/site hosts outside local mode, placeholder hosts, and origins listed for the opposite environment. These values are public, not secrets. Configure the Express CORS allowlist to include the deployed admin site origin.
+
+Render Static Site staging environment variables:
+
+```text
+YOMART_BUILD_ENV=staging
+VITE_API_BASE_URL=https://yomart-api.onrender.com
+YOMART_EXPECTED_API_ORIGIN=https://yomart-api.onrender.com
+VITE_EXPECTED_SITE_ORIGIN=https://yomart-admin.onrender.com
+YOMART_PRODUCTION_API_ORIGINS=(empty or unset)
+YOMART_NO_PRODUCTION_API=true
+YOMART_PRODUCTION_SITE_ORIGINS=(comma-separated confirmed production website origins)
+```
+
+The last site-origin value cannot be guessed. The build will fail closed until it contains the confirmed production admin/storefront origins (or a separate, explicitly approved policy change is made). Do not copy the staging API into a production denylist.
 
 To make a local release preview against the local backend, use:
 

@@ -17,6 +17,7 @@ function parseOrigin(value, name, { allowLocalHttp = false } = {}) {
     throw new Error(`${name} must be a public HTTP(S) origin without credentials, path, query, or fragment.`);
   }
   const host = url.hostname.toLowerCase();
+  if (host.includes('*')) throw new Error(`${name} cannot contain wildcard hosts.`);
   if (host.includes('replace-with') || host.includes('placeholder') || host.includes('your-api-domain') || host.endsWith('.example') || PLACEHOLDER_HOSTS.has(host)) {
     throw new Error(`${name} cannot contain a placeholder host.`);
   }
@@ -29,9 +30,18 @@ function parseOrigin(value, name, { allowLocalHttp = false } = {}) {
   return { origin: url.origin, hostname: host, loopback };
 }
 
-function parseOrigins(value, name) {
-  if (typeof value !== 'string' || !value.trim()) throw new Error(`${name} is required for environment separation.`);
-  return new Set(value.split(',').map((item) => parseOrigin(item.trim(), name).origin));
+function parseOrigins(value, name, { allowExplicitEmpty = false } = {}) {
+  if (typeof value !== 'string') {
+    if (allowExplicitEmpty && value === undefined) return new Set();
+    throw new Error(`${name} is required for environment separation.`);
+  }
+  if (!value.trim()) {
+    if (allowExplicitEmpty) return new Set();
+    throw new Error(`${name} is required for environment separation.`);
+  }
+  const entries = value.split(',').map((item) => item.trim());
+  if (entries.some((item) => !item)) throw new Error(`${name} must contain only valid comma-separated origins.`);
+  return new Set(entries.map((item) => parseOrigin(item, name).origin));
 }
 
 export function resolveAdminBuildTarget(env) {
@@ -55,7 +65,21 @@ export function resolveAdminBuildTarget(env) {
   if (buildEnv !== 'local' && api.loopback) throw new Error(`${buildEnv} admin builds cannot target localhost.`);
 
   if (buildEnv === 'staging') {
-    const denied = parseOrigins(env.YOMART_PRODUCTION_API_ORIGINS, 'YOMART_PRODUCTION_API_ORIGINS');
+    // Render may omit an entirely blank dashboard variable. In that case the
+    // owner must explicitly assert that no production API exists. A literal
+    // empty list is also accepted. Non-empty lists always use strict parsing.
+    const noProductionApi = env.YOMART_NO_PRODUCTION_API;
+    if (noProductionApi !== undefined && !['true', 'false'].includes(noProductionApi)) {
+      throw new Error('YOMART_NO_PRODUCTION_API must be true or false when set.');
+    }
+    const productionApiList = env.YOMART_PRODUCTION_API_ORIGINS;
+    if (noProductionApi === 'true' && typeof productionApiList === 'string' && productionApiList.trim()) {
+      throw new Error('YOMART_NO_PRODUCTION_API=true cannot be combined with production API origins.');
+    }
+    const explicitlyEmptyList = typeof productionApiList === 'string' && !productionApiList.trim();
+    const denied = parseOrigins(productionApiList, 'YOMART_PRODUCTION_API_ORIGINS', {
+      allowExplicitEmpty: noProductionApi === 'true' || explicitlyEmptyList,
+    });
     for (const host of KNOWN_PRODUCTION_API_HOSTS) denied.add(`https://${host}`);
     if (denied.has(api.origin)) throw new Error('A production API origin cannot be used for a staging admin build.');
   }

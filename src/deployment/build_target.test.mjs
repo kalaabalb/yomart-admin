@@ -23,6 +23,37 @@ test('admin staging build uses only its explicit staging API origin', () => {
   });
 });
 
+test('staging accepts an explicitly empty production API denylist when none exists', () => {
+  const target = resolveAdminBuildTarget({ ...staging, YOMART_PRODUCTION_API_ORIGINS: '' });
+  assert.equal(target.apiOrigin, 'https://api.stage.yomart.test');
+  assert.throws(() => resolveAdminBuildTarget({ ...staging, YOMART_PRODUCTION_API_ORIGINS: undefined }), /YOMART_PRODUCTION_API_ORIGINS is required/);
+  assert.equal(resolveAdminBuildTarget({
+    ...staging,
+    YOMART_PRODUCTION_API_ORIGINS: undefined,
+    YOMART_NO_PRODUCTION_API: 'true',
+  }).apiOrigin, 'https://api.stage.yomart.test');
+  assert.throws(() => resolveAdminBuildTarget({
+    ...staging,
+    YOMART_NO_PRODUCTION_API: 'true',
+    YOMART_PRODUCTION_API_ORIGINS: 'https://api.prod.yomart.test',
+  }), /cannot be combined/);
+  assert.throws(() => resolveAdminBuildTarget({ ...staging, YOMART_NO_PRODUCTION_API: 'yes' }), /must be true or false/);
+});
+
+test('staging accepts valid non-empty production API origins but rejects overlap', () => {
+  assert.equal(resolveAdminBuildTarget(staging).apiOrigin, 'https://api.stage.yomart.test');
+  assert.throws(() => resolveAdminBuildTarget({
+    ...staging,
+    YOMART_PRODUCTION_API_ORIGINS: 'https://api.stage.yomart.test',
+  }), /production API origin cannot be used/);
+  assert.throws(() => resolveAdminBuildTarget({
+    ...staging,
+    VITE_API_BASE_URL: 'https://yomart-api.onrender.com',
+    YOMART_EXPECTED_API_ORIGIN: 'https://yomart-api.onrender.com',
+    YOMART_PRODUCTION_API_ORIGINS: 'https://yomart-api.onrender.com',
+  }), /production API origin cannot be used/);
+});
+
 test('admin release build requires explicit target and matching expected origin', () => {
   assert.throws(() => resolveAdminBuildTarget({}), /YOMART_BUILD_ENV must be/);
   assert.throws(() => resolveAdminBuildTarget({ ...staging, VITE_API_BASE_URL: '' }), /VITE_API_BASE_URL is required/);
@@ -48,7 +79,18 @@ test('staging admin rejects local, placeholder and known production endpoints', 
 });
 
 test('environment origin denylists are mandatory and reject malformed entries', () => {
-  assert.throws(() => resolveAdminBuildTarget({ ...staging, YOMART_PRODUCTION_API_ORIGINS: '' }), /YOMART_PRODUCTION_API_ORIGINS is required/);
+  for (const malformed of [
+    'https://prod.test/path',
+    'http://prod.test',
+    'https://user:pass@prod.test',
+    'https://prod.test?debug=true',
+    'https://prod.test#fragment',
+    'https://*.prod.test',
+    'https://prod.test,,https://other.prod.test',
+    ',https://prod.test',
+  ]) {
+    assert.throws(() => resolveAdminBuildTarget({ ...staging, YOMART_PRODUCTION_API_ORIGINS: malformed }));
+  }
   assert.throws(() => resolveAdminBuildTarget({ ...staging, YOMART_PRODUCTION_API_ORIGINS: 'https://prod.test/path' }), /without credentials, path/);
   assert.throws(() => resolveAdminBuildTarget({
     YOMART_BUILD_ENV: 'production',
@@ -67,6 +109,24 @@ test('environment origin denylists are mandatory and reject malformed entries', 
     YOMART_STAGING_API_ORIGINS: 'https://api.stage.yomart.test',
     YOMART_STAGING_SITE_ORIGINS: 'https://admin.stage.yomart.test',
   }), /staging site origin cannot be used/);
+});
+
+test('production build keeps strict non-empty staging denylist and overlap protections', () => {
+  const production = {
+    YOMART_BUILD_ENV: 'production',
+    VITE_API_BASE_URL: 'https://api.prod.yomart.test',
+    VITE_EXPECTED_SITE_ORIGIN: 'https://admin.prod.yomart.test',
+    YOMART_EXPECTED_API_ORIGIN: 'https://api.prod.yomart.test',
+    YOMART_STAGING_API_ORIGINS: 'https://api.stage.yomart.test',
+    YOMART_STAGING_SITE_ORIGINS: 'https://admin.stage.yomart.test',
+  };
+  assert.deepEqual(resolveAdminBuildTarget(production), {
+    buildEnv: 'production',
+    apiOrigin: 'https://api.prod.yomart.test',
+    siteOrigin: 'https://admin.prod.yomart.test',
+  });
+  assert.throws(() => resolveAdminBuildTarget({ ...production, YOMART_STAGING_API_ORIGINS: '' }), /YOMART_STAGING_API_ORIGINS is required/);
+  assert.throws(() => resolveAdminBuildTarget({ ...production, VITE_API_BASE_URL: 'https://api.stage.yomart.test', YOMART_EXPECTED_API_ORIGIN: 'https://api.stage.yomart.test' }), /staging API origin cannot be used/);
 });
 
 test('production admin rejects an explicitly listed staging API origin', () => {
