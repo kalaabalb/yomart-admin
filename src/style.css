@@ -22,3 +22,18 @@
 .payment-method-fields textarea{width:100%;min-height:70px;padding:10px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface-soft);color:var(--text);resize:vertical;font:inherit}
 .payment-method-fields textarea:focus{border-color:var(--blue);outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 15%,transparent)}
 .settings-info-card{display:grid;align-content:start;gap:8px;padding:15px;border:1px solid var(--border-soft);border-radius:10px;background:var(--surface-soft);color:var(--muted);font-size:11px}.settings-info-card b{color:var(--text);font-size:12px}.settings-info-card p{margin:0;line-height:1.55}
+
+/* Shared page-action layout: consistent placement above every resource view. */
+.admin-page-toolbar .table-search{width:min(420px,52%);min-width:220px}
+.admin-page-toolbar .toolbar-right{flex-wrap:wrap}
+@media(max-width:720px){
+  .content-wrap{padding:22px 16px 28px}
+  .admin-page-toolbar{align-items:stretch;flex-direction:column;padding:12px;gap:10px}
+  .admin-page-toolbar .table-search{width:100%;min-width:0}
+  .admin-page-toolbar .toolbar-right,.admin-page-toolbar .toolbar-actions,.admin-page-toolbar .story-toolbar-actions{width:100%;justify-content:flex-end}
+  .admin-page-toolbar .toolbar-context{display:none}
+  .admin-page-toolbar .button{flex:1}
+  .rc-toolbar.admin-page-toolbar{align-items:stretch}
+  .story-toolbar.admin-page-toolbar{align-items:stretch}
+  .resource-panel table{min-width:680px}
+}
