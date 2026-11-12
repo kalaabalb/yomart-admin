@@ -77,7 +77,7 @@ export default function PaymentMethodsManager({ api, token, refresh, notify }) {
 
   const needsAccount = form.category !== 'cash_collection';
   return <section className="payment-method-manager">
-    <div className="rc-toolbar"><div/><button className="button secondary" onClick={load} disabled={loading}><RefreshCw size={15}/> Refresh</button></div>
+    <div className="admin-page-toolbar rc-toolbar"><div className="toolbar-context">Payment options shown at checkout</div><button className="button secondary" onClick={load} disabled={loading}><RefreshCw size={15}/> Refresh</button></div>
     <div className="panel rc-form-panel"><form onSubmit={save}>
       <div className="rc-form-heading"><div><h3>{editingCode ? 'Edit payment method' : 'Add a payment method'}</h3><p>Payment details are copied into each new order so later edits do not change order history.</p></div>{editingCode && <button type="button" className="icon-button" onClick={reset} aria-label="Cancel editing"><X size={17}/></button>}</div>
       <div className="rc-fields payment-method-fields">

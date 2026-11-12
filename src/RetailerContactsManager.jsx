@@ -54,7 +54,7 @@ export default function RetailerContactsManager({ api, token, refresh, notify })
   }
   const change = (key, value) => setForm((state) => ({ ...state, [key]: value }));
   return <section className="retailer-contact-manager">
-    <div className="rc-toolbar"><div/><button className="button secondary" onClick={load} disabled={loading}><RefreshCw size={15}/> Refresh</button></div>
+    <div className="admin-page-toolbar rc-toolbar"><div className="toolbar-context">Customer-facing contact details</div><div className="toolbar-actions"><button className="button secondary" onClick={load} disabled={loading}><RefreshCw size={15}/> Refresh</button><button className="button primary" onClick={startCreate}><Plus size={15}/> Add contact</button></div></div>
     <div className="panel rc-form-panel"><form onSubmit={save}>
       <div className="rc-form-heading"><div><h3>{editing ? 'Edit contact' : 'Add a contact'}</h3><p>Multiple entries of the same type are supported.</p></div>{editing && <button type="button" className="icon-button" onClick={startCreate} aria-label="Cancel editing"><X size={17}/></button>}</div>
       <div className="rc-fields">
