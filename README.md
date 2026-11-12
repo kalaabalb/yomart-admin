@@ -1,5 +1,7 @@
 # YoMart Admin Web
 
+Deployed staging admin: https://yomart-admin.onrender.com. Shared release, security, operations, and tester guidance: https://github.com/kalaabalb/yomart-docs.
+
 React/Vite web admin for managing the YoMart storefront.
 
 ## Run locally
