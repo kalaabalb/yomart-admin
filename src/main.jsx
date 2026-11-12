@@ -91,7 +91,7 @@ async function request(path,{token,method='GET',body,signal}={}){
   if(body && !(body instanceof FormData))headers['Content-Type']='application/json';
   let response;
   try { response=await fetch(`${API}${path}`,{method,headers,body:body instanceof FormData?body:body?JSON.stringify(body):undefined,signal}); }
-  catch(e){throw new Error(`Cannot reach API at ${API}. Check the backend and VITE_API_BASE_URL.`)}
+  catch(e){throw new Error('Unable to connect to YoMart services. Check your connection and try again.')}
   const json=await response.json().catch(()=>({}));
   if(!response.ok || json.success===false)throw new Error(json.message||`Request failed (${response.status})`);
   return json;
